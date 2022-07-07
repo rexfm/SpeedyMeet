@@ -1,5 +1,5 @@
 {
-  "name": "Google Meet As App",
+  "name": "Speedy Meet",
   "version": "0.1.0",
   "description": "Open Google Meet links in the PWA by default",
   "permissions": ["storage", "tabs"],
@@ -30,7 +30,7 @@
       "24": "assets/ext-icon.png",
       "32": "assets/ext-icon.png"
     },
-    "default_title": "Google Meet As App",
+    "default_title": "Speedy Meet",
     "default_popup": "popup.html"
   },
   "manifest_version": 3
