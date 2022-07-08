@@ -8,7 +8,10 @@
 (() => {
   if (isPwa()) {
     chrome.storage.onChanged.addListener(function (changes) {
-      if (changes['queryParams'] && changes['queryParams'].newValue) {
+      if (
+        changes['queryParams'] &&
+        changes['queryParams'].newValue !== '__gmInitialState'
+      ) {
         const icons = document.getElementsByClassName('google-material-icons');
         let onCall = false;
         for (const i in icons) {
@@ -21,20 +24,21 @@
           return;
         }
 
-        window.location.href =
-          'https://meet.google.com/' +
-          changes['queryParams'].newValue +
-          '?authuser=0';
+        const qp = changes['queryParams'].newValue;
+        const newQueryParams = qp.includes('?')
+          ? qp + '&authuser=0'
+          : qp + '?authuser=0';
+
+        const currentHref = window.location.href;
+        const newHref = 'https://meet.google.com/' + newQueryParams;
+        if (currentHref !== newHref) {
+          window.location.href = 'https://meet.google.com/' + newQueryParams;
+        }
 
         // close original tab
-        chrome.storage.local.set(
-          {
-            googleMeetOpenedUrl: new Date().toISOString(),
-          },
-          function () {
-            console.log('saved OPENED to storage');
-          }
-        );
+        chrome.storage.local.set({
+          googleMeetOpenedUrl: new Date().toISOString(),
+        });
       }
     });
   } else {
