@@ -16,10 +16,7 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "assets/bookmark.png",
-        "assets/play.png",
-        "assets/delete.png",
-        "assets/save.png"
+        "assets/ext-icon.png"
       ],
       "matches": ["https://meet.google.com/*"]
     }
@@ -32,6 +29,12 @@
     },
     "default_title": "Speedy Meet",
     "default_popup": "popup.html"
+  },
+  "icons": {
+    "16": "assets/ext-icon.png",
+    "32": "assets/ext-icon.png",
+    "48": "assets/ext-icon.png",
+    "128": "assets/ext-icon.png"
   },
   "manifest_version": 3
 }
