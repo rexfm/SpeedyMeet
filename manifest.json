@@ -2,15 +2,25 @@
   "name": "Speedy Meet",
   "version": "0.1.0",
   "description": "Open Google Meet links in the PWA by default",
-  "permissions": ["storage", "tabs"],
-  "host_permissions": ["https://meet.google.com/*"],
+  "permissions": [
+    "scripting",
+    "storage",
+    "tabs"
+  ],
+  "host_permissions": [
+    "https://meet.google.com/*"
+  ],
   "background": {
     "service_worker": "background.js"
   },
   "content_scripts": [
     {
-      "matches": ["https://meet.google.com/*"],
-      "js": ["contentScript.js"]
+      "matches": [
+        "https://meet.google.com/*"
+      ],
+      "js": [
+        "contentScript.js"
+      ]
     }
   ],
   "web_accessible_resources": [
@@ -18,7 +28,9 @@
       "resources": [
         "assets/ext-icon.png"
       ],
-      "matches": ["https://meet.google.com/*"]
+      "matches": [
+        "https://meet.google.com/*"
+      ]
     }
   ],
   "action": {
