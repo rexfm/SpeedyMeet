@@ -1,15 +1,46 @@
-<body>
-</body>
+<html>
 
-<link href="popup.css" rel="stylesheet" type="text/css" />
+<head>
+  <link href="popup.css" rel="stylesheet" type="text/css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/css/bootstrap.min.css"
+    integrity="sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5zCYotlSAcp1+c8xmyTe9GYg1l9a69psu" crossorigin="anonymous">
+  <script type="text/javascript" src="jquery.js"></script>
+  <script src="popup.js"></script>
+</head>
 
-<div class="container">
-  <div>
+
+
+<body id="main">
+  <div class="container">
     <div class="title">Usage</div>
 
     <div class="description" id="description">Open the Google Meet PWA and then open a Google Meet link. The Meet
       session should be moved to the PWA. In case of errors <a href="https://github.com/rexfm/SpeedyMeet/issues">report
         them as issues here</a>.
     </div>
+
+    <div class="form-check row">
+      <input type="checkbox" id="stopVideoOnJoin" class="form-check-input" name="stopVideoOnJoin" value="">
+      <label for="stopVideoOnJoin" class="form-check-label"> Stop my video when joining a meeting</label><br>
+    </div>
+    <div class="form-check row">
+      <input type="checkbox" id="stopMicOnJoin" class="form-check-input" name="stopMicOnJoin" value="">
+      <label for="stopMicOnJoin" class="form-check-label"> Mute my mic when joining a meeting</label><br>
+    </div>
+    <div class="form-check row">
+      <input type="checkbox" id="spaceBarToUnmute" class="form-check-input" name="spaceBarToUnmute" value="">
+      <label for="spaceBarToUnmute" class="form-check-label"> Press and hold 'Space Key' to temporarily
+        unmute</label><br>
+    </div>
+    <div class="form-check row">
+      <input type="checkbox" id="skipPreMeeting" class="form-check-input" name="skipPreMeeting" value="">
+      <label for="skipPreMeeting" class="form-check-label"> Skip pre-meeting screen?</label><br>
+    </div>
+    <div class="form-check row">
+      <input type="checkbox" id="autoJoin" name="autoJoin" value="">
+      <label for="autoJoin" class="form-check-label"> Bring Meet PWA to foreground</label><br>
+    </div>
   </div>
-</div>
+</body>
+
+</html>
