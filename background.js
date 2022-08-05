@@ -72,12 +72,10 @@ chrome.storage.onChanged.addListener(function (changes) {
     chrome.windows.update(googleMeetWindowId, { focused: true }, function () {
       // close the tab that originally started the process if it wasn't the landing page
       chrome.storage.local.get(
-        ['originatingTabId', 'queryParams'],
-        function ({ originatingTabId, queryParams }) {
+        ['originatingTabId'],
+        function ({ originatingTabId }) {
           setTimeout(function () {
-            if (queryParams !== '') {
-              chrome.tabs.remove(originatingTabId);
-            }
+            chrome.tabs.remove(originatingTabId);
           }, 0);
         }
       );
