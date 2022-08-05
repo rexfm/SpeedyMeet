@@ -13,6 +13,7 @@
       'stopMicOnJoin',
       'spaceBarToUnmute',
       'skipPreMeeting',
+      'skipPostMeeting',
     ];
     chrome.storage.sync.get(settingsToMonitor, (values) => {
       settings = values;
@@ -27,37 +28,54 @@
       }
     });
 
-    window.onbeforeunload = function (e) {
-      if (isOnCall()) {
-        e.stopPropagation();
-        var message = 'Do you want to leave this page?';
-        return message;
-      }
-    };
+    const observer = new MutationObserver(function (mutations) {
+      mutations.forEach(function (mutation) {
+        // pre-meeting observer
+        if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+          if (
+            mutation.previousSibling &&
+            mutation.previousSibling.innerText === 'Join now'
+          ) {
+            if (settings.stopVideoOnJoin) {
+              toggleVideo();
+            }
 
-    window.onload = function (e) {
-      console.log('window.onload');
+            if (settings.stopMicOnJoin) {
+              toggleMute();
+            }
 
-      const spans = document.querySelectorAll('span');
-      for (const s in spans) {
-        if (spans[s].outerText === 'Join now') {
-          if (settings.stopVideoOnJoin) {
-            toggleVideo();
+            if (settings.skipPreMeeting) {
+              setTimeout(() => {
+                mutation.previousSibling.children[0].click();
+              }, 0);
+            }
           }
 
-          if (settings.stopMicOnJoin) {
-            toggleMute();
-          }
-
-          if (settings.skipPreMeeting) {
-            setTimeout(() => {
-              spans[s].click();
-            }, 500);
-            console.log('click join now');
-          }
+          // post meeting observer
+          mutation.addedNodes.forEach((node) => {
+            const innerText = node.innerText || '';
+            if (innerText.startsWith('You left the meeting')) {
+              const spans = document.querySelectorAll('span');
+              for (let i = 0; i < spans.length; i++) {
+                const span = spans[i];
+                if (span.innerText === 'Return to home screen') {
+                  if (settings.skipPostMeeting) {
+                    span.click();
+                  }
+                }
+              }
+            }
+          });
         }
-      }
-    };
+      });
+    });
+
+    observer.observe(document, {
+      childList: true,
+      characterData: true,
+      attributes: true,
+      subtree: true,
+    });
 
     document.addEventListener('keydown', function (e) {
       if (settings.spaceBarToUnmute && e.code === 'Space') {
@@ -108,16 +126,19 @@
       }
     });
   } else {
+    // Skipping logic to inject UX when you redirect away. I think it' a
+    // better experience when you just close and redirect as quickly as possible
+    //
     // Normal tab, add listener to replace UI with
-    chrome.storage.onChanged.addListener(function (changes) {
-      if (changes['originatingTabId'] && changes['originatingTabId'].newValue) {
-        // could improve this. it only properly replaces if you navigated to a meet.google.com/some-slug
-        // it does not know how to replace the landing page. we could make it look a lot nicer
-        document.body.childNodes[1].style.display = 'none';
-        const textnode = document.createTextNode('Opening in Google Meet app');
-        document.body.appendChild(textnode);
-      }
-    });
+    // chrome.storage.onChanged.addListener(function (changes) {
+    //   if (changes['originatingTabId'] && changes['originatingTabId'].newValue) {
+    //     // could improve this. it only properly replaces if you navigated to a meet.google.com/some-slug
+    //     // it does not know how to replace the landing page. we could make it look a lot nicer
+    //     document.body.childNodes[1].style.display = 'none';
+    //     const textnode = document.createTextNode('Opening in Google Meet app');
+    //     document.body.appendChild(textnode);
+    //   }
+    // });
   }
 })();
 
@@ -155,7 +176,7 @@ function toggleMute() {
   document.dispatchEvent(
     new KeyboardEvent('keydown', {
       key: 'd',
-      metaKey: true, // these are here for example's sake.
+      metaKey: true,
     })
   );
 }
@@ -164,7 +185,7 @@ function toggleVideo() {
   document.dispatchEvent(
     new KeyboardEvent('keydown', {
       key: 'e',
-      metaKey: true, // these are here for example's sake.
+      metaKey: true,
     })
   );
 }

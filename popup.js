@@ -5,11 +5,17 @@ function restore_options() {
     $('#stopMicOnJoin').prop('checked', values.stopMicOnJoin);
     $('#spaceBarToUnmute').prop('checked', values.spaceBarToUnmute);
     $('#skipPreMeeting').prop('checked', values.skipPreMeeting);
+    $('#skipPostMeeting').prop('checked', values.skipPostMeeting);
   };
   chrome.storage.sync.get(
-    ['stopVideoOnJoin', 'stopMicOnJoin', 'spaceBarToUnmute', 'skipPreMeeting'],
+    [
+      'stopVideoOnJoin',
+      'stopMicOnJoin',
+      'spaceBarToUnmute',
+      'skipPreMeeting',
+      'skipPostMeeting',
+    ],
     function (values) {
-      console.log(values);
       setValues(values);
     }
   );
@@ -23,7 +29,6 @@ document.addEventListener('DOMContentLoaded', function () {
     console.log('called?');
     const enabled = $(this).is(':checked');
     const key = $(this).attr('id');
-    console.log(`key = ${key} || enabled = ${enabled}`);
     chrome.storage.sync.set(
       {
         [key]: enabled,
