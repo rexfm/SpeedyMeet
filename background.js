@@ -3,6 +3,7 @@
  * This will start the process to redirect the open tab into the PWA.
  */
 
+
 let googleMeetWindowId;
 
 // clear referring state on page load
@@ -82,3 +83,4 @@ chrome.storage.onChanged.addListener(function (changes) {
     });
   }
 });
+
