@@ -1,6 +1,6 @@
 {
   "name": "Speedy Meet",
-  "version": "0.2.0",
+  "version": "0.1.0",
   "description": "Open Google Meet links in the PWA by default",
   "permissions": [
     "scripting",
