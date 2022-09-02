@@ -1,16 +1,45 @@
-<body>
-</body>
+<html>
 
-<link href="popup.css" rel="stylesheet" type="text/css" />
-<script type="module" src="popup.js"></script>
+<head>
+  <link href="popup.css" rel="stylesheet" type="text/css" />
+  <script type="text/javascript" src="jquery.js"></script>
+  <script src="popup.js"></script>
+</head>
 
-<div class="container">
-  <div>
-    <div class="title">SpeedyMeet Usage</div>
+
+
+<body id="main" class="font-sans">
+  <div class="container">
+    <div class="title">Usage</div>
 
     <div class="description" id="description">Open the Google Meet PWA and then open a Google Meet link. The Meet
-      session should be moved to the PWA. In case of errors <a href="https://github.com/rexfm/SpeedyMeet/issues">report
+      session should be moved to the PWA. In case of errors <a href="https://github.com/rexfm/SpeedyMeet/issues"
+        target="_blank" rel="noopener noreferrer">report
         them as issues here</a>.
     </div>
+
+    <div>
+      <input type="checkbox" id="stopVideoOnJoin" class="form-check-input" name="stopVideoOnJoin" value="">
+      <label for="stopVideoOnJoin" class="form-check-label"> Stop my video when joining a meeting</label><br>
+    </div>
+    <div>
+      <input type="checkbox" id="stopMicOnJoin" class="form-check-input" name="stopMicOnJoin" value="">
+      <label for="stopMicOnJoin" class="form-check-label"> Mute my mic when joining a meeting</label><br>
+    </div>
+    <div>
+      <input type="checkbox" id="spaceBarToUnmute" class="form-check-input" name="spaceBarToUnmute" value="">
+      <label for="spaceBarToUnmute" class="form-check-label"> Press and hold 'Space Key' to temporarily
+        unmute</label><br>
+    </div>
+    <div>
+      <input type="checkbox" id="skipPreMeeting" class="form-check-input" name="skipPreMeeting" value="">
+      <label for="skipPreMeeting" class="form-check-label"> Skip pre-meeting screen?</label><br>
+    </div>
+    <div>
+      <input type="checkbox" id="skipPostMeeting" class="form-check-input" name="skipPostMeeting" value="">
+      <label for="skipPostMeeting" class="form-check-label"> Skip post-meeting screen?</label><br>
+    </div>
   </div>
-</div>
+</body>
+
+</html>
