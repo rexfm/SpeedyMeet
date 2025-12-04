@@ -32,6 +32,7 @@ const STORAGE_KEYS = {
   ORIGINATING_TAB_ID: 'originatingTabId',
   QUERY_PARAMS: 'queryParams',
   SHOULD_AUTO_JOIN_OVERRIDE: 'shouldAutoJoinOverride',
+  MEETING_TITLES: 'meetingTitles',
 };
 
 // Global state for countdown management
@@ -63,6 +64,8 @@ function buildNotificationElements() {
 
   const dismissOverlay = () => {
     pageContainerOverlay.remove();
+    // Cancel the auto-close by ignoring the new meeting redirect
+    ignoreNewMeeting();
   };
   useThisTabButton.onclick = dismissOverlay;
   pageContainerOverlay.onclick = dismissOverlay;
@@ -78,13 +81,24 @@ function buildNotificationElements() {
   return pageContainerOverlay;
 }
 
-function buildNextMeetingAlert(onClick) {
+function buildNextMeetingAlert(onClick, meetingTitle = null) {
   const container = document.createElement('div');
   container.className = 'meet-next-meeting-alert';
+
+  const messageContainer = document.createElement('div');
+  messageContainer.className = 'meet-next-meeting-message-container';
 
   const message = document.createElement('div');
   message.textContent = 'You have a new meeting starting!';
   message.className = 'meet-next-meeting-message';
+  messageContainer.appendChild(message);
+
+  const meetingTitleElement = document.createElement('div');
+  meetingTitleElement.className = 'meet-next-meeting-title';
+  if (meetingTitle) {
+    meetingTitleElement.textContent = meetingTitle;
+    messageContainer.appendChild(meetingTitleElement);
+  }
 
   const switchBtn = document.createElement('button');
   switchBtn.textContent = 'Switch to meeting';
@@ -107,7 +121,7 @@ function buildNextMeetingAlert(onClick) {
 
   btnContainer.appendChild(switchBtn);
   btnContainer.appendChild(dismissBtn);
-  container.appendChild(message);
+  container.appendChild(messageContainer);
   container.appendChild(btnContainer);
 
   return container;
@@ -160,6 +174,75 @@ function speakText(text) {
   } else {
     console.warn('chrome.runtime is not available');
   }
+}
+
+/**
+ * Helper function to stop all ongoing TTS
+ */
+function stopTTS() {
+  if (chrome.runtime) {
+    chrome.runtime.sendMessage(
+      {
+        type: 'STOP_TTS',
+      },
+      (response) => {
+        if (chrome.runtime.lastError) {
+          console.warn('Failed to send stop TTS message:', chrome.runtime.lastError);
+        } else {
+          console.log('TTS stopped successfully');
+        }
+      },
+    );
+  }
+}
+
+/**
+ * Helper function to detect meeting title from page
+ * @returns {string|null} The meeting title or null if not found
+ */
+function getMeetingTitle() {
+  const titleElement = document.querySelector('[role="heading"] [role="tooltip"]');
+  return titleElement ? titleElement.textContent?.trim() || null : null;
+}
+
+/**
+ * Store meeting title for a given meeting code
+ * @param {string} meetingCode - The meeting code
+ * @param {string} title - The meeting title
+ */
+function storeMeetingTitle(meetingCode, title) {
+  if (!meetingCode || !title) return;
+
+  // Don't save generic titles that aren't useful
+  if (title === 'Ready to join?') return;
+
+  chrome.storage.local.get([STORAGE_KEYS.MEETING_TITLES], (result) => {
+    const meetingTitles = result[STORAGE_KEYS.MEETING_TITLES] || {};
+    meetingTitles[meetingCode] = title;
+
+    chrome.storage.local.set({
+      [STORAGE_KEYS.MEETING_TITLES]: meetingTitles,
+    });
+
+    console.log('Stored meeting title:', { meetingCode, title });
+  });
+}
+
+/**
+ * Get stored meeting title for a given meeting code
+ * @param {string} meetingCode - The meeting code
+ * @param {function} callback - Callback function to receive the title
+ */
+function getMeetingTitleFromStorage(meetingCode, callback) {
+  if (!meetingCode) {
+    callback(null);
+    return;
+  }
+
+  chrome.storage.local.get([STORAGE_KEYS.MEETING_TITLES], (result) => {
+    const meetingTitles = result[STORAGE_KEYS.MEETING_TITLES] || {};
+    callback(meetingTitles[meetingCode] || null);
+  });
 }
 
 /**
@@ -474,13 +557,34 @@ function closeOriginalTab() {
 function ignoreNewMeeting() {
   chrome.storage.local.set({
     [STORAGE_KEYS.ORIGINATING_TAB_ID]: '',
-    [STORAGE_KEYS.QUERY_PARAMS]: '__gmInitialState',
+    [STORAGE_KEYS.QUERY_PARAMS]: '',
     source: '',
     [STORAGE_KEYS.GOOGLE_MEET_DECLINED_URL]: new Date().toISOString(),
   });
 }
 
 (() => {
+  // Stop TTS when join button is clicked
+  const setupJoinButtonListener = () => {
+    const joinButton = findJoinButton();
+    if (joinButton && !joinButton.hasAttribute('data-tts-listener')) {
+      joinButton.setAttribute('data-tts-listener', 'true');
+      joinButton.addEventListener('click', () => {
+        console.log('Join button clicked, stopping TTS');
+        stopTTS();
+      });
+    }
+  };
+  
+  // Set up initial listener
+  setupJoinButtonListener();
+  
+  // Watch for new join buttons (page changes, DOM updates)
+  const joinButtonObserver = new MutationObserver(() => {
+    setupJoinButtonListener();
+  });
+  joinButtonObserver.observe(document.body, { childList: true, subtree: true });
+  
   if (isPwa()) {
     chrome.storage.onChanged.addListener(function (changes) {
       if (
@@ -498,15 +602,18 @@ function ignoreNewMeeting() {
         }
         // if different meeting and on call
         if (onCall) {
-          document.body.prepend(
-            buildNextMeetingAlert((shouldSwitch) => {
-              if (shouldSwitch) {
-                switchToNewCall(changes, true);
-              } else {
-                ignoreNewMeeting();
-              }
-            }),
-          );
+          // Get the stored meeting title for the new meeting
+          getMeetingTitleFromStorage(newMeetingCode, (meetingTitle) => {
+            document.body.prepend(
+              buildNextMeetingAlert((shouldSwitch) => {
+                if (shouldSwitch) {
+                  switchToNewCall(changes, true);
+                } else {
+                  ignoreNewMeeting();
+                }
+              }, meetingTitle),
+            );
+          });
           // close original tab once the ui is shown
           closeOriginalTab();
         } else {
@@ -520,6 +627,25 @@ function ignoreNewMeeting() {
       disableVideoAndMicConfig(!onCall);
     }, INITIALIZATION_DELAY_MS);
   } else {
+    // Normal tab, detect and store meeting title when page loads or changes
+    const detectAndStoreMeetingTitle = () => {
+      setTimeout(() => {
+        const { meetingCode } = getCurrentCallStatus();
+        const title = getMeetingTitle();
+
+        if (meetingCode && title) {
+          storeMeetingTitle(meetingCode, title);
+        }
+      }, 1000); // Small delay to ensure DOM is ready
+    };
+
+    // Store title on initial load
+    detectAndStoreMeetingTitle();
+
+    // Also detect title when DOM changes (meeting title might load later)
+    const observer = new MutationObserver(detectAndStoreMeetingTitle);
+    observer.observe(document.body, { childList: true, subtree: true });
+
     // Normal tab, add listener to replace UI with
     chrome.storage.onChanged.addListener(function (changes) {
       if (

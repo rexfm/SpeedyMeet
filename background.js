@@ -92,9 +92,9 @@ chrome.storage.onChanged.addListener(function (changes) {
     chrome.windows.update(googleMeetWindowId, { focused: true }, function () {
       // close the tab that originally started the process if it wasn't the landing page
       chrome.storage.local.get(
-        ['originatingTabId', 'queryParams', 'source'],
-        function ({ originatingTabId, queryParams, source }) {
-          let timeout = 3000;
+        ['originatingTabId', 'queryParams', 'source', 'tabCloseTimeout'],
+        function ({ originatingTabId, queryParams, source, tabCloseTimeout }) {
+          let timeout = (tabCloseTimeout !== undefined ? tabCloseTimeout : 3) * 1000;
           if (source === 'NEW_MEETING') {
             timeout = 0;
           }
@@ -125,6 +125,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       console.log('TTS: Speaking text:', message.text);
     } else {
       console.warn('TTS not supported');
+    }
+    sendResponse({ success: true });
+  } else if (message.type === 'STOP_TTS') {
+    if (chrome.tts) {
+      chrome.tts.stop();
+      console.log('TTS: Stopped all speech');
     }
     sendResponse({ success: true });
   }
