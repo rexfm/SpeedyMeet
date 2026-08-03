@@ -112,6 +112,17 @@
   }
 }
 
+/* Auto-join delay button */
+.auto-join-delay-btn {
+  background-color: #1a73e8;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
 /* Auto-join cancel button */
 .auto-join-cancel-btn {
   background-color: #d93025;

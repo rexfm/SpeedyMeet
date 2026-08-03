@@ -11,6 +11,8 @@ var countdownDurationInput = document.getElementById('countdown-duration');
 var countdownDurationContainer = countdownDurationInput.parentElement;
 var ttsIntervalInput = document.getElementById('tts-interval');
 var ttsIntervalContainer = ttsIntervalInput.parentElement;
+var delayJoinDurationInput = document.getElementById('delay-join-duration');
+var delayJoinDurationContainer = delayJoinDurationInput.parentElement;
 var tabCloseTimeoutInput = document.getElementById('tab-close-timeout');
 console.log('test loaded popup');
 
@@ -19,9 +21,11 @@ function toggleCountdownVisibility() {
   if (autoJoinInput.checked) {
     countdownDurationContainer.style.display = 'flex';
     ttsIntervalContainer.style.display = 'flex';
+    delayJoinDurationContainer.style.display = 'flex';
   } else {
     countdownDurationContainer.style.display = 'none';
     ttsIntervalContainer.style.display = 'none';
+    delayJoinDurationContainer.style.display = 'none';
   }
 }
 
@@ -32,6 +36,7 @@ chrome.storage.local.get(
     'autoJoin',
     'countdownDuration',
     'ttsAnnouncementInterval',
+    'delayJoinDuration',
     'tabCloseTimeout',
   ],
   (res) => {
@@ -40,6 +45,7 @@ chrome.storage.local.get(
     autoJoinInput.checked = res.autoJoin;
     countdownDurationInput.value = res.countdownDuration || 10;
     ttsIntervalInput.value = res.ttsAnnouncementInterval || 5;
+    delayJoinDurationInput.value = res.delayJoinDuration || 30;
     tabCloseTimeoutInput.value = res.tabCloseTimeout !== undefined ? res.tabCloseTimeout : 3;
     toggleCountdownVisibility();
 
@@ -84,6 +90,14 @@ ttsIntervalInput.addEventListener('change', (e) => {
   if (v > 30) v = 30;
   ttsIntervalInput.value = v;
   chrome.storage.local.set({ ttsAnnouncementInterval: v });
+});
+
+delayJoinDurationInput.addEventListener('change', (e) => {
+  let v = parseInt(e.target.value, 10);
+  if (isNaN(v) || v < 5) v = 5;
+  if (v > 120) v = 120;
+  delayJoinDurationInput.value = v;
+  chrome.storage.local.set({ delayJoinDuration: v });
 });
 
 tabCloseTimeoutInput.addEventListener('change', (e) => {

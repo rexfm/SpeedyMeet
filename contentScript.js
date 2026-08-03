@@ -14,6 +14,7 @@ const DEFAULT_TIMEOUT_MS = 15000;
 const INITIALIZATION_DELAY_MS = 1000;
 const DEFAULT_COUNTDOWN_DURATION = 10;
 const TTS_ANNOUNCEMENT_INTERVAL = 5;
+const DEFAULT_DELAY_JOIN_DURATION = 30;
 
 // Aria labels and selectors
 const ARIA_LABELS = {
@@ -177,22 +178,15 @@ function speakText(text) {
 }
 
 /**
- * Helper function to stop all ongoing TTS
+ * Stops any currently playing TTS speech
  */
 function stopTTS() {
   if (chrome.runtime) {
-    chrome.runtime.sendMessage(
-      {
-        type: 'STOP_TTS',
-      },
-      (response) => {
-        if (chrome.runtime.lastError) {
-          console.warn('Failed to send stop TTS message:', chrome.runtime.lastError);
-        } else {
-          console.log('TTS stopped successfully');
-        }
-      },
-    );
+    chrome.runtime.sendMessage({ type: 'STOP_TTS' }, () => {
+      if (chrome.runtime.lastError) {
+        console.warn('Failed to send stop TTS message:', chrome.runtime.lastError);
+      }
+    });
   }
 }
 
@@ -284,9 +278,17 @@ function cancelActiveCountdown() {
 function startAutoJoinCountdown(
   duration = DEFAULT_COUNTDOWN_DURATION,
   ttsInterval = TTS_ANNOUNCEMENT_INTERVAL,
+  delayDuration = DEFAULT_DELAY_JOIN_DURATION,
 ) {
-  // Cancel any existing countdown first
-  cancelActiveCountdown();
+  // Don't restart if a countdown is already running. The join page can re-render
+  // the join button repeatedly while loading, which would otherwise trigger
+  // multiple countdown starts — each one interrupts the in-progress TTS
+  // announcement (so it never finishes) and re-inserts the overlay UI, making
+  // the join button appear to flicker.
+  if (isCountdownActive()) {
+    console.log('Auto-join countdown already active, skipping restart');
+    return;
+  }
 
   const joinMeetingButton = findJoinButton();
   if (!joinMeetingButton) {
@@ -301,6 +303,11 @@ function startAutoJoinCountdown(
   const countdownDisplay = document.createElement('div');
   countdownDisplay.className = 'auto-join-countdown-display';
 
+  // Create delay button
+  const delayButton = document.createElement('button');
+  delayButton.innerText = `Delay ${delayDuration}s`;
+  delayButton.className = 'auto-join-delay-btn btn';
+
   // Create cancel button
   const cancelButton = document.createElement('button');
   cancelButton.innerText = 'Cancel Auto-Join';
@@ -309,6 +316,7 @@ function startAutoJoinCountdown(
   const displayContainer = document.createElement('div');
   displayContainer.className = 'auto-join-display-container';
   displayContainer.appendChild(countdownDisplay);
+  displayContainer.appendChild(delayButton);
   displayContainer.appendChild(cancelButton);
 
   // Function to check if elements are still on screen and visible
@@ -340,7 +348,7 @@ function startAutoJoinCountdown(
 
     // Re-add elements
     currentJoinButton.parentNode.insertBefore(displayContainer, currentJoinButton.nextSibling);
-    currentJoinButton.parentNode.className += ' auto-join-active';
+    currentJoinButton.parentNode.classList.add('auto-join-active');
 
     console.log('Re-added countdown elements to page');
     return true;
@@ -352,11 +360,8 @@ function startAutoJoinCountdown(
       clearInterval(countdownInterval);
       countdownInterval = null;
     }
-    if (countdownDisplay && countdownDisplay.parentNode) {
-      countdownDisplay.remove();
-    }
-    if (cancelButton && cancelButton.parentNode) {
-      cancelButton.remove();
+    if (displayContainer && displayContainer.parentNode) {
+      displayContainer.remove();
     }
     // Clear global state
     if (activeCountdown && activeCountdown.cleanup === cleanup) {
@@ -364,6 +369,14 @@ function startAutoJoinCountdown(
     }
     console.log('Auto-join countdown cleanup completed');
   }
+
+  // Delay button click handler
+  delayButton.onclick = () => {
+    countdown += delayDuration;
+    console.log(`Auto-join delayed by ${delayDuration}s, new countdown: ${countdown}s`);
+    speakText(`Delaying join by ${delayDuration} seconds`);
+    updateCountdownDisplay();
+  };
 
   // Cancel button click handler
   cancelButton.onclick = () => {
@@ -375,7 +388,7 @@ function startAutoJoinCountdown(
   // Insert countdown display and cancel button after join button
   if (joinMeetingButton.parentNode) {
     joinMeetingButton.parentNode.insertBefore(displayContainer, joinMeetingButton.nextSibling);
-    joinMeetingButton.parentNode.className += ' auto-join-active';
+    joinMeetingButton.parentNode.classList.add('auto-join-active');
   }
 
   // Update countdown display
@@ -414,10 +427,9 @@ function startAutoJoinCountdown(
       }
     } else {
       console.log('Auto-join countdown completed - joining meeting now');
-      speakText('Joining meeting now');
+      stopTTS();
       cleanup();
 
-      // Click the join button
       const finalJoinButton = findJoinButton();
       if (finalJoinButton) {
         finalJoinButton.click();
@@ -442,6 +454,7 @@ function disableVideoAndMicConfig(joiningNewMeeting) {
       'autoJoin',
       'countdownDuration',
       'ttsAnnouncementInterval',
+      'delayJoinDuration',
     ],
     (res) => {
       // Helper to run interval with timeout
@@ -493,6 +506,7 @@ function disableVideoAndMicConfig(joiningNewMeeting) {
               chrome.storage.local.set({
                 [STORAGE_KEYS.SHOULD_AUTO_JOIN_OVERRIDE]: false,
               });
+              stopTTS();
               joinMeetingButton.click();
               return true;
             }
@@ -501,11 +515,12 @@ function disableVideoAndMicConfig(joiningNewMeeting) {
         } else if (res.autoJoin) {
           const countdownDuration = res.countdownDuration || DEFAULT_COUNTDOWN_DURATION;
           const ttsInterval = res.ttsAnnouncementInterval || TTS_ANNOUNCEMENT_INTERVAL;
+          const delayDuration = res.delayJoinDuration || DEFAULT_DELAY_JOIN_DURATION;
           runInterval(() => {
             const joinMeetingButton = findJoinButton();
             const { onCall } = getCurrentCallStatus();
             if (joinMeetingButton && !onCall) {
-              startAutoJoinCountdown(countdownDuration, ttsInterval);
+              startAutoJoinCountdown(countdownDuration, ttsInterval, delayDuration);
               return true;
             }
             return false;
@@ -564,27 +579,25 @@ function ignoreNewMeeting() {
 }
 
 (() => {
-  // Stop TTS when join button is clicked
-  const setupJoinButtonListener = () => {
-    const joinButton = findJoinButton();
-    if (joinButton && !joinButton.hasAttribute('data-tts-listener')) {
-      joinButton.setAttribute('data-tts-listener', 'true');
-      joinButton.addEventListener('click', () => {
+  window.addEventListener('beforeunload', stopTTS);
+
+  // Stop any in-progress TTS as soon as a join button is clicked. A single
+  // capturing listener on the document covers both manual clicks and our own
+  // programmatic auto-join clicks, so the announcement is never still playing
+  // when we enter the meeting. (Previously this relied on a MutationObserver
+  // re-attaching per-button listeners, which missed manual joins.)
+  document.addEventListener(
+    'click',
+    (event) => {
+      const button = event.target instanceof Element ? event.target.closest('button') : null;
+      if (button && JOIN_BUTTON_TEXTS.includes(button.innerText?.trim().toLowerCase())) {
         console.log('Join button clicked, stopping TTS');
         stopTTS();
-      });
-    }
-  };
-  
-  // Set up initial listener
-  setupJoinButtonListener();
-  
-  // Watch for new join buttons (page changes, DOM updates)
-  const joinButtonObserver = new MutationObserver(() => {
-    setupJoinButtonListener();
-  });
-  joinButtonObserver.observe(document.body, { childList: true, subtree: true });
-  
+      }
+    },
+    true,
+  );
+
   if (isPwa()) {
     chrome.storage.onChanged.addListener(function (changes) {
       if (

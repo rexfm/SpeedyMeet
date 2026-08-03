@@ -88,28 +88,33 @@ chrome.tabs.onUpdated.addListener((tabId, tabChangeInfo, tab) => {
 
 chrome.storage.onChanged.addListener(function (changes) {
   if (changes['googleMeetOpenedUrl']) {
+    if (!googleMeetWindowId) return;
+
     // bring Google Meet PWA into focus
-    chrome.windows.update(googleMeetWindowId, { focused: true }, function () {
-      // close the tab that originally started the process if it wasn't the landing page
-      chrome.storage.local.get(
-        ['originatingTabId', 'queryParams', 'source', 'tabCloseTimeout'],
-        function ({ originatingTabId, queryParams, source, tabCloseTimeout }) {
-          let timeout = (tabCloseTimeout !== undefined ? tabCloseTimeout : 3) * 1000;
-          if (source === 'NEW_MEETING') {
-            timeout = 0;
-          }
-          setTimeout(function () {
-            if (queryParams !== '') {
-              if (Array.isArray(originatingTabId)) {
-                originatingTabId.forEach((id) => chrome.tabs.remove(id));
-              } else {
-                chrome.tabs.remove(originatingTabId);
-              }
-            }
-          }, timeout);
-        },
-      );
+    chrome.windows.update(googleMeetWindowId, { focused: true }).catch(() => {
+      googleMeetWindowId = undefined;
     });
+
+    // close the tab that originally started the process if it wasn't the landing page
+    chrome.storage.local.get(
+      ['originatingTabId', 'queryParams', 'source', 'tabCloseTimeout'],
+      function ({ originatingTabId, queryParams, source, tabCloseTimeout }) {
+        let timeout = (tabCloseTimeout !== undefined ? tabCloseTimeout : 3) * 1000;
+        if (source === 'NEW_MEETING') {
+          timeout = 0;
+        }
+        setTimeout(function () {
+          if (queryParams !== '') {
+            const ids = Array.isArray(originatingTabId)
+              ? originatingTabId.filter((id) => typeof id === 'number')
+              : typeof originatingTabId === 'number'
+                ? [originatingTabId]
+                : [];
+            ids.forEach((id) => chrome.tabs.remove(id).catch(() => {}));
+          }
+        }, timeout);
+      },
+    );
   }
 });
 
@@ -130,7 +135,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   } else if (message.type === 'STOP_TTS') {
     if (chrome.tts) {
       chrome.tts.stop();
-      console.log('TTS: Stopped all speech');
+      console.log('TTS: Stopped');
     }
     sendResponse({ success: true });
   }
