@@ -497,12 +497,15 @@ function disableVideoAndMicConfig(joiningNewMeeting) {
       }
 
       if (joiningNewMeeting) {
-        // Join meeting button interval
+        // Join meeting button interval. A meeting code must be present in the
+        // URL: Meet's home/launch pages (`/home` in the new UI, `/landing` in
+        // the old) render "Join" buttons too — the code-entry form button and
+        // one on each ongoing meeting's card — which must never auto-join.
         if (res.shouldAutoJoinOverride) {
           runInterval(() => {
             const joinMeetingButton = findJoinButton();
-            const { onCall } = getCurrentCallStatus();
-            if (joinMeetingButton && !onCall) {
+            const { onCall, meetingCode } = getCurrentCallStatus();
+            if (joinMeetingButton && meetingCode && !onCall) {
               chrome.storage.local.set({
                 [STORAGE_KEYS.SHOULD_AUTO_JOIN_OVERRIDE]: false,
               });
@@ -518,8 +521,8 @@ function disableVideoAndMicConfig(joiningNewMeeting) {
           const delayDuration = res.delayJoinDuration || DEFAULT_DELAY_JOIN_DURATION;
           runInterval(() => {
             const joinMeetingButton = findJoinButton();
-            const { onCall } = getCurrentCallStatus();
-            if (joinMeetingButton && !onCall) {
+            const { onCall, meetingCode } = getCurrentCallStatus();
+            if (joinMeetingButton && meetingCode && !onCall) {
               startAutoJoinCountdown(countdownDuration, ttsInterval, delayDuration);
               return true;
             }
