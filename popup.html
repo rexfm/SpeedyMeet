@@ -1,16 +1,49 @@
-<body>
-</body>
-
-<link href="popup.css" rel="stylesheet" type="text/css" />
-<script type="module" src="popup.js"></script>
-
-<div class="container">
-  <div>
-    <div class="title">SpeedyMeet Usage</div>
-
-    <div class="description" id="description">Open the Google Meet PWA and then open a Google Meet link. The Meet
-      session should be moved to the PWA. In case of errors <a href="https://github.com/rexfm/SpeedyMeet/issues">report
-        them as issues here</a>.
+<html>
+  <head>
+    <link href="popup.css" rel="stylesheet" type="text/css" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="flex-column g-3">
+        <h1 class="title">SpeedyMeet Usage</h1>
+        <div class="description" id="description">
+          Open the Google Meet PWA and then open a Google Meet link. The Meet session should be
+          moved to the PWA. In case of errors
+          <a href="https://github.com/rexfm/SpeedyMeet/issues">report them as issues here</a>.
+        </div>
+        <div class="flex-column g-2">
+          <h2>Settings</h2>
+          <div class="flex g-2 align-items-center">
+            <input type="checkbox" id="disable-mic" />
+            <label for="disable-mic">Disable mic when joining</label>
+          </div>
+          <div class="flex g-2 align-items-center">
+            <input type="checkbox" id="disable-video" />
+            <label for="disable-video">Disable video when joining</label>
+          </div>
+          <div class="flex g-2 align-items-center">
+            <input type="checkbox" id="auto-join" />
+            <label for="auto-join">Auto-join meetings with countdown</label>
+          </div>
+          <div class="flex g-2 align-items-center">
+            <label for="countdown-duration">Countdown seconds:</label>
+            <input type="number" id="countdown-duration" min="5" max="60" value="10" />
+          </div>
+          <div class="flex g-2 align-items-center">
+            <label for="tts-interval">TTS interval (s):</label>
+            <input type="number" id="tts-interval" min="1" max="30" value="5" />
+          </div>
+          <div class="flex g-2 align-items-center">
+            <label for="delay-join-duration">Delay join (s):</label>
+            <input type="number" id="delay-join-duration" min="5" max="120" value="30" />
+          </div>
+          <div class="flex g-2 align-items-center">
+            <label for="tab-close-timeout">Tab close delay (s):</label>
+            <input type="number" id="tab-close-timeout" min="0" max="30" value="3" />
+          </div>
+        </div>
+      </div>
     </div>
-  </div>
-</div>
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

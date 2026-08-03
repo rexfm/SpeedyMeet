@@ -1,17 +1,39 @@
 .container {
   width: 280px;
   color: #314d3e;
+  padding: 1em;
 }
 
-.title {
-  font-size: 14px;
+h1 {
   font-weight: bold;
-  padding: 8px;
 }
 
-.description {
-  margin: 5px 5px;
-  padding: 3px;
+h2 {
+  font-weight: bold;
 }
 
+.flex {
+  display: flex;
+}
+.align-items-center {
+  align-items: center;
+}
+.flex-column {
+  display: flex;
+  flex-direction: column;
+}
+.g-1 {
+  gap: 0.25em;
+}
+.g-2 {
+  gap: 0.5em;
+}
+.g-3 {
+  gap: 1em;
+}
 
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
