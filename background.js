@@ -84,7 +84,8 @@ chrome.tabs.onUpdated.addListener((tabId, tabChangeInfo, tab) => {
 
         // only attempt a redirect when not the PWA
         if (tab.windowId !== googleMeetWindowId) {
-          const parameters = tab.url.split('/')[3];
+          // Keep the full path and query for both /meet/<code> and /<code> links.
+          const parameters = tab.url.split('/').slice(3).join('/');
           if (!parameters.startsWith('new') && !parameters.startsWith('_meet')) {
             // if empty, set the landing page
             chrome.storage.local.set({
